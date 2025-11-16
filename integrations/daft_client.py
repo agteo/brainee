@@ -228,6 +228,20 @@ class DaftStorage:
             try:
                 df = self._load_or_create_df(self.quiz_attempts_path, self.quiz_attempts_json, schema)
 
+                # Check for duplicates before appending (deduplication)
+                # Check if this exact question_id + user_id combination already exists
+                # Same question for same user should only be logged once
+                pandas_df = df.to_pandas() if len(df) > 0 else pd.DataFrame()
+                if len(pandas_df) > 0:
+                    # Check for duplicates: same user_id and question_id
+                    duplicate_mask = (
+                        (pandas_df["user_id"] == complete_entry["user_id"]) &
+                        (pandas_df["question_id"] == complete_entry["question_id"])
+                    )
+                    if duplicate_mask.any():
+                        # Duplicate found, skip logging
+                        return
+
                 # Append new entry
                 new_row = daft.from_pydict({k: [v] for k, v in complete_entry.items()})
                 df = df.concat(new_row)
@@ -237,13 +251,27 @@ class DaftStorage:
                 # If Daft fails, fallback to JSON
                 print(f"Warning: Daft storage failed, using JSON fallback: {e}")
                 data = self._load_json(self.quiz_attempts_json)
-                data.append(complete_entry)
-                self._save_json(self.quiz_attempts_json, data)
+                # Check for duplicates before appending (same user_id + question_id)
+                duplicate = any(
+                    item.get("user_id") == complete_entry["user_id"] and
+                    item.get("question_id") == complete_entry["question_id"]
+                    for item in data
+                )
+                if not duplicate:
+                    data.append(complete_entry)
+                    self._save_json(self.quiz_attempts_json, data)
         else:
             # JSON fallback
             data = self._load_json(self.quiz_attempts_json)
-            data.append(complete_entry)
-            self._save_json(self.quiz_attempts_json, data)
+            # Check for duplicates before appending (same user_id + question_id)
+            duplicate = any(
+                item.get("user_id") == complete_entry["user_id"] and
+                item.get("question_id") == complete_entry["question_id"]
+                for item in data
+            )
+            if not duplicate:
+                data.append(complete_entry)
+                self._save_json(self.quiz_attempts_json, data)
         
         self._usage_stats['quiz_attempts_logged'] += 1
 

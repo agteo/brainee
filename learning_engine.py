@@ -156,8 +156,8 @@ class LearningEngine:
                 total_score += weight
                 total_weight += weight
             else:  # Wrong answer
-                # Don't add to total_weight or total_score for wrong answers
-                pass
+                # Include wrong answers in total_weight so the average reflects all attempted questions
+                total_weight += weight
         
         # If user answered "I'm not sure" to all questions, they're definitely a beginner
         if unsure_count == total_questions:
@@ -605,6 +605,14 @@ Once you understand this clarification, you can continue with the main lesson.""
             if not image_ref:
                 image_ref = None
 
+        # Use the user's actual difficulty level from state (from diagnostic assessment)
+        # Only override if agent explicitly returns a different difficulty_tag
+        user_difficulty = self.state_manager.get_current_difficulty()
+        lesson_difficulty = agent_result.get("difficulty_tag")
+        # If agent didn't return a difficulty_tag, use the user's assessed level
+        if lesson_difficulty is None:
+            lesson_difficulty = user_difficulty
+
         # Log lesson event only if this is a new page/view (deduplication)
         # Check if we've already logged this exact page recently
         last_logged = self.state_manager.state.get("last_logged_lesson", {})
@@ -701,14 +709,6 @@ Once you understand this clarification, you can continue with the main lesson.""
                 check_questions = []
         else:
             check_questions = []
-        
-        # Use the user's actual difficulty level from state (from diagnostic assessment)
-        # Only override if agent explicitly returns a different difficulty_tag
-        user_difficulty = self.state_manager.get_current_difficulty()
-        lesson_difficulty = agent_result.get("difficulty_tag")
-        # If agent didn't return a difficulty_tag, use the user's assessed level
-        if lesson_difficulty is None:
-            lesson_difficulty = user_difficulty
         
         lesson_data = {
             "module": module_name,

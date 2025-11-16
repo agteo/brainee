@@ -91,27 +91,36 @@ def api_diagnostic():
             all_unsure = diagnostic_result.get('all_unsure', False)
             
             # Log all diagnostic attempts (only once, at completion)
+            # Check which questions have already been logged to prevent duplicates
+            already_logged_questions = set()
+            for attempt in engine.state_manager.state.get("quiz_performance", []):
+                question_id = attempt.get("question_id", "")
+                if question_id.startswith("diagnostic_q"):
+                    already_logged_questions.add(question_id)
+            
             # Calculate correctness for each answer and log to both Daft and state manager
             for i, answer in enumerate(all_answers):
                 is_correct = (answer.get('selected_option') == answer.get('correct_answer_index'))
                 question_id = f"diagnostic_q{i}"
                 
-                # Log to Daft (structured storage)
-                log_quiz_attempt({
-                    "user_id": engine.user_id,
-                    "question_id": question_id,
-                    "user_answer": f"Selected option {answer['selected_option']}",
-                    "answer": f"Option {answer.get('correct_answer_index', 'N/A')}",
-                    "correct": is_correct,
-                    "hesitation_seconds": answer['hesitation_seconds'],
-                    "timestamp": time.time(),
-                    "difficulty_level": assessed_level
-                })
-                
-                # Record in state manager (for self-evolving logic)
-                engine.state_manager.record_quiz_attempt(
-                    question_id, is_correct, answer['hesitation_seconds']
-                )
+                # Only log if not already logged
+                if question_id not in already_logged_questions:
+                    # Log to Daft (structured storage)
+                    log_quiz_attempt({
+                        "user_id": engine.user_id,
+                        "question_id": question_id,
+                        "user_answer": f"Selected option {answer['selected_option']}",
+                        "answer": f"Option {answer.get('correct_answer_index', 'N/A')}",
+                        "correct": is_correct,
+                        "hesitation_seconds": answer['hesitation_seconds'],
+                        "timestamp": time.time(),
+                        "difficulty_level": assessed_level
+                    })
+                    
+                    # Record in state manager (for self-evolving logic)
+                    engine.state_manager.record_quiz_attempt(
+                        question_id, is_correct, answer['hesitation_seconds']
+                    )
             
             # Update state with final assessed level
             engine.state_manager.state["difficulty_level"] = assessed_level
