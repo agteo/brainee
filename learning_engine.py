@@ -949,32 +949,51 @@ ACTION: simplify_and_examples/continue/provide_examples"""
             except Exception as e:
                 print(f"Fastino intervention query error: {e}")
 
-        # Record in state manager (triggers self-evolving logic)
-        self.state_manager.record_quiz_attempt(
-            question_id, is_correct, hesitation_seconds
-        )
+        # Check if this question has already been answered (deduplication)
+        # Prevent duplicate logging from multiple submissions
+        already_answered = False
+        for attempt in self.state_manager.state.get("quiz_performance", []):
+            if attempt.get("question_id") == question_id:
+                already_answered = True
+                break
         
-        # If user is confused, trigger immediate adaptation
-        if is_confused:
-            # Decrease difficulty
-            current_diff = self.state_manager.get_current_difficulty()
-            if current_diff > 0:
-                self.state_manager.state["difficulty_level"] = max(0, current_diff - 1)
-            # Switch to examples mode
-            self.state_manager.set_learning_style("examples")
-            self.state_manager.save_state()
+        # Only process if not already answered
+        if not already_answered:
+            # Record in state manager (triggers self-evolving logic)
+            self.state_manager.record_quiz_attempt(
+                question_id, is_correct, hesitation_seconds
+            )
+            
+            # If user is confused, trigger immediate adaptation
+            if is_confused:
+                # Decrease difficulty
+                current_diff = self.state_manager.get_current_difficulty()
+                if current_diff > 0:
+                    self.state_manager.state["difficulty_level"] = max(0, current_diff - 1)
+                # Switch to examples mode
+                self.state_manager.set_learning_style("examples")
+                self.state_manager.save_state()
 
-        # Log to Daft
-        log_quiz_attempt({
-            "user_id": self.user_id,
-            "question_id": question_id,
-            "user_answer": user_answer,
-            "answer": correct_answer,  # Keep for compatibility
-            "correct": is_correct,
-            "hesitation_seconds": hesitation_seconds,
-            "timestamp": time.time(),
-            "difficulty_level": self.state_manager.get_current_difficulty()
-        })
+            # Log to Daft (only once per question)
+            log_quiz_attempt({
+                "user_id": self.user_id,
+                "question_id": question_id,
+                "user_answer": user_answer,
+                "answer": correct_answer,  # Keep for compatibility
+                "correct": is_correct,
+                "hesitation_seconds": hesitation_seconds,
+                "timestamp": time.time(),
+                "difficulty_level": self.state_manager.get_current_difficulty()
+            })
+        else:
+            # Question already answered - just return feedback without logging
+            # Still update state for confusion if needed (but don't log again)
+            if is_confused:
+                current_diff = self.state_manager.get_current_difficulty()
+                if current_diff > 0:
+                    self.state_manager.state["difficulty_level"] = max(0, current_diff - 1)
+                self.state_manager.set_learning_style("examples")
+                self.state_manager.save_state()
 
         # Get Fastino recommendations for next steps
         fastino_recommendation = None

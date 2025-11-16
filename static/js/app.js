@@ -647,6 +647,12 @@ function selectCheckQuestionOption(questionIndex, optionIndex) {
 }
 
 async function submitMCQAnswer(questionIndex, questionId, correctAnswerIndex, questionText = '') {
+    // Prevent multiple submissions
+    const submitBtn = document.getElementById(`submit-btn-${questionIndex}`);
+    if (submitBtn && submitBtn.disabled) {
+        return; // Already submitted
+    }
+    
     const selectedOption = document.querySelector(`[data-question="${questionIndex}"].mcq-option.selected`);
     if (!selectedOption) {
         showToast('Please select an option', 'warning');
@@ -656,6 +662,11 @@ async function submitMCQAnswer(questionIndex, questionId, correctAnswerIndex, qu
     const selectedIndex = parseInt(selectedOption.getAttribute('data-option'));
     const startTime = Date.now();
     const hesitation = (Date.now() - startTime) / 1000;
+    
+    // Disable button immediately to prevent double-clicks
+    if (submitBtn) {
+        submitBtn.disabled = true;
+    }
     
     showLoading('Checking your answer...');
     
