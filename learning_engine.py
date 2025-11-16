@@ -87,14 +87,19 @@ class LearningEngine:
             "question_index": question_index
         })
 
-        # Only log the attempt if user provided an answer (not when just loading the question)
-        if user_input and user_input.strip():
+        # Note: Diagnostic logging is handled in app.py for MCQ flow
+        # Only log here for text-based diagnostic (fallback mode)
+        # Skip logging for MCQ format (which uses "Selected option X" format)
+        if user_input and user_input.strip() and not user_input.startswith("Selected option"):
             log_quiz_attempt({
                 "user_id": self.user_id,
                 "question_id": "diagnostic_initial",
-                "answer": user_input,
+                "user_answer": user_input,
+                "answer": "",
+                "correct": False,  # Text diagnostic doesn't have correct answer
                 "hesitation_seconds": hesitation_seconds,
-                "timestamp": time.time()
+                "timestamp": time.time(),
+                "difficulty_level": self.state_manager.get_current_difficulty()
             })
 
         # Update state if we got an assessed level (only for final assessment)
@@ -600,14 +605,39 @@ Once you understand this clarification, you can continue with the main lesson.""
             if not image_ref:
                 image_ref = None
 
-        # Log lesson event
-        log_lesson_event({
-            "user_id": self.user_id,
-            "module": module_name,
-            "difficulty_level": agent_result.get("difficulty_tag", 1),
-            "learning_style": agent_result.get("suggested_style", "text"),
-            "timestamp": time.time()
-        })
+        # Log lesson event only if this is a new page/view (deduplication)
+        # Check if we've already logged this exact page recently
+        last_logged = self.state_manager.state.get("last_logged_lesson", {})
+        last_module = last_logged.get("module")
+        last_page = last_logged.get("page", -1)
+        last_timestamp = last_logged.get("timestamp", 0)
+        
+        # Only log if:
+        # 1. Different module, OR
+        # 2. Different page within same module, OR  
+        # 3. Same page but more than 5 minutes ago (user came back)
+        should_log = (
+            last_module != module_name or
+            last_page != current_page or
+            (time.time() - last_timestamp) > 300  # 5 minutes
+        )
+        
+        if should_log:
+            log_lesson_event({
+                "user_id": self.user_id,
+                "module": module_name,
+                "difficulty_level": lesson_difficulty,
+                "learning_style": agent_result.get("suggested_style", "text"),
+                "timestamp": time.time()
+            })
+            
+            # Update last logged lesson to prevent duplicate logging
+            self.state_manager.state["last_logged_lesson"] = {
+                "module": module_name,
+                "page": current_page,
+                "timestamp": time.time()
+            }
+            self.state_manager.save_state()
 
         # Limit check questions to 1 per page (max)
         # For fundamentals, assign questions to specific pages
@@ -672,10 +702,18 @@ Once you understand this clarification, you can continue with the main lesson.""
         else:
             check_questions = []
         
+        # Use the user's actual difficulty level from state (from diagnostic assessment)
+        # Only override if agent explicitly returns a different difficulty_tag
+        user_difficulty = self.state_manager.get_current_difficulty()
+        lesson_difficulty = agent_result.get("difficulty_tag")
+        # If agent didn't return a difficulty_tag, use the user's assessed level
+        if lesson_difficulty is None:
+            lesson_difficulty = user_difficulty
+        
         lesson_data = {
             "module": module_name,
             "content": content,
-            "difficulty": agent_result.get("difficulty_tag", 1),
+            "difficulty": lesson_difficulty,
             "check_questions": check_questions,
             "next_module": agent_result.get("next_module"),
             "learning_style": agent_result.get("suggested_style", "text"),
@@ -807,14 +845,32 @@ ACTION: simplify_and_examples/continue/provide_examples"""
                 "suggested_action": "simplify_and_examples"
             }
         
-        # If answer is substantial and doesn't show confusion, assume partial understanding
-        # But be more conservative - substantial length alone doesn't mean correct
+        # Fallback: Evaluate based on answer length and content
+        # This is a heuristic that works without LLM evaluation
         answer_length = len(user_answer.strip())
+        answer_lower = user_answer.lower()
+        
+        # Check for key terms that suggest understanding (basic keyword matching)
+        # This is a simple heuristic - not perfect but better than nothing
+        understanding_indicators = [
+            "pattern", "learn", "predict", "token", "model", "training",
+            "data", "generate", "process", "input", "output", "neural",
+            "algorithm", "autocomplete", "sequence", "context"
+        ]
+        
+        has_keywords = any(indicator in answer_lower for indicator in understanding_indicators)
+        
+        # Mark as correct if:
+        # 1. Answer is substantial (at least 20 chars) AND
+        # 2. Either has relevant keywords OR is very detailed (50+ chars)
+        # 3. Doesn't show confusion signals (already checked above)
+        is_correct = answer_length >= 20 and (has_keywords or answer_length >= 50)
+        
         return {
-            "is_correct": False,  # Without LLM evaluation, default to incorrect to encourage learning
+            "is_correct": is_correct,
             "is_confused": answer_length < 15,  # Short answers suggest confusion
-            "confidence": 0.4 if answer_length > 30 else 0.2,
-            "reasoning": "Answer needs semantic evaluation. Please ensure OpenAI API is configured for accurate assessment.",
+            "confidence": 0.7 if (is_correct and answer_length > 40) else 0.5 if is_correct else 0.3,
+            "reasoning": "Evaluated based on answer length and content" if is_correct else "Answer could be more detailed. Try to explain your understanding more fully.",
             "suggested_action": "continue"
         }
 

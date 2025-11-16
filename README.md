@@ -240,23 +240,41 @@ python main.py --reset --user yourname
 python demo_test.py
 ```
 
-## Development
+## Tech Stack
 
-Built with:
-- Python 3.8+
-- **LiquidMetal AI SDK** (primary agent reasoning engine)
-- **Daft** (structured DataFrame storage)
-- Rich (beautiful terminal UI)
-- OpenAI API (optional fallback)
-- Modular architecture for easy extension
+### Backend
+- **Python 3.8+** - Core language
+- **Flask** - Web framework and REST API
+- **LiquidMetal AI SDK** (lm-raindrop) - Primary agent reasoning engine for diagnostic, lesson, and capstone agents
+- **Daft** (getdaft) - Structured data storage in Parquet format
+- **Pandas** - Data manipulation and analysis
+- **Rich** - Beautiful terminal UI for CLI
+- **Click** - CLI command interface
+- **OpenAI API** (optional) - Semantic answer evaluation and enhanced diagnostics
+- **Google Gemini API** (optional) - Image and video generation for visual learning aids
+- **Fastino Labs** (optional) - Enhanced personalization with user memory and RAG retrieval
 
-### Key Technologies
+### Frontend
+- **HTML/CSS/JavaScript** - Vanilla web frontend
+- **Marked.js** - Markdown rendering for lesson content
+- **RESTful API** - Communication with Flask backend
 
-- **LiquidMetal AI**: Powers all three intelligent agents (diagnostic, lesson, capstone)
-- **Daft**: Stores learning signals in efficient columnar format (Parquet)
-- **Rich**: Provides beautiful CLI with markdown rendering
-- **Fastino Labs**: Enhanced personalization with user memory and RAG retrieval (optional)
-- **Self-Evolving Logic**: Adapts difficulty and style based on performance patterns
+### Data Storage
+- **JSON** - User progress, quiz attempts, lesson logs
+- **Parquet** (via Daft) - Efficient columnar storage for analytics
+
+### External APIs
+- **LiquidMetal AI** (required) - Agent reasoning
+- **OpenAI** (optional) - Answer evaluation
+- **Freepik API** (optional) - Visual learning assets
+- **Fastino Labs** (optional) - Personalization and memory
+- **Google Gemini** (optional) - Image/video generation
+
+### Architecture
+- Modular design with separate integrations for each service
+- Self-evolving adaptive learning logic
+- State management with JSON persistence
+- RESTful API architecture
 
 ### Web Frontend
 
