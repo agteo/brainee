@@ -718,6 +718,10 @@ async function submitMCQAnswer(questionIndex, questionId, correctAnswerIndex, qu
     } catch (error) {
         hideLoading();
         showToast('Error submitting answer: ' + error.message, 'error');
+        // Re-enable button on error so user can retry
+        if (submitBtn) {
+            submitBtn.disabled = false;
+        }
     }
 }
 
@@ -730,8 +734,16 @@ async function submitAnswer(questionIndex, questionId, questionText = '') {
         return;
     }
     
+    // Prevent multiple submissions
+    if (answerInput.disabled) {
+        return; // Already submitted
+    }
+    
     const startTime = Date.now();
     const hesitation = (Date.now() - startTime) / 1000;
+    
+    // Disable input immediately to prevent double-submissions
+    answerInput.disabled = true;
     
     showLoading('Checking your answer...');
     
@@ -797,6 +809,12 @@ async function submitAnswer(questionIndex, questionId, questionText = '') {
     } catch (error) {
         hideLoading();
         showToast('Error submitting answer: ' + error.message, 'error');
+        // Re-enable input on error so user can retry
+        answerInput.disabled = false;
+        const submitButton = answerInput.parentElement.querySelector('button');
+        if (submitButton) {
+            submitButton.disabled = false;
+        }
     }
 }
 
