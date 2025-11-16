@@ -1,0 +1,42 @@
+# Core dependencies for LearnAI - Adaptive AI Learning Agent
+
+# LiquidMetal AI SDK for agent reasoning
+# Install the Raindrop SDK: pip install lm-raindrop
+lm-raindrop>=0.1.0
+
+# OpenAI for LLM integration (fallback if LiquidMetal unavailable)
+openai>=1.0.0
+
+# For structured data handling with Daft
+getdaft>=0.2.0
+pandas>=2.0.0
+
+# CLI interface
+click>=8.0.0
+rich>=13.0.0
+
+# HTTP requests for Freepik API
+requests>=2.31.0
+
+# For environment variables
+python-dotenv>=1.0.0
+
+# JSON schema validation
+jsonschema>=4.0.0
+
+# Date and time utilities
+python-dateutil>=2.8.0
+
+# Web framework for frontend
+flask>=3.0.0
+flask-cors>=4.0.0
+
+# Markdown rendering
+markdown>=3.5.0
+
+# Fastino Labs for enhanced personalization (optional)
+# requests is already included above for Fastino API calls
+
+# Google Gemini API for image/video generation (optional)
+# Note: Install google-generativeai if using Gemini API
+# google-generativeai>=0.3.0

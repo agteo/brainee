@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Brainee - your Learning Partner</title>
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Roboto:wght@300;400;500;600;700&family=Roboto+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+</head>
+<body>
+    <!-- Theme Toggle -->
+    <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
+        <span class="theme-toggle-icon" id="theme-icon">🌙</span>
+        <span class="theme-toggle-text" id="theme-text">Dark Mode</span>
+    </button>
+
+    <div class="container">
+        <!-- Welcome Screen -->
+        <div id="welcome-screen" class="screen active">
+            <div class="welcome-content">
+                <h1>🧠 Brainee - your Learning Partner</h1>
+                <p class="subtitle">Build your own AI agent through personalized, adaptive learning</p>
+                
+                <button class="btn btn-primary btn-large" onclick="startDiagnostic()">Let's Go!</button>
+                <p class="tagline">Adaptive learning from fundamentals to building your own AI agent</p>
+
+                <div class="features">
+                    <div class="feature-card">
+                        <h3>📚 AI Fundamentals</h3>
+                        <p>Learn the basics</p>
+                    </div>
+                    <div class="feature-card">
+                        <h3>🤖 Transformers & LLMs</h3>
+                        <p>Understand modern AI</p>
+                    </div>
+                    <div class="feature-card coming-soon">
+                        <h3>⚡ AI Agents</h3>
+                        <p>Build reasoning agents</p>
+                        <span class="coming-soon-badge">Coming Soon</span>
+                    </div>
+                    <div class="feature-card coming-soon">
+                        <h3>🚀 Capstone</h3>
+                        <p>Create your agent</p>
+                        <span class="coming-soon-badge">Coming Soon</span>
+                    </div>
+                </div>
+                <div class="admin-link" style="margin-top: 2rem;">
+                    <a href="#" onclick="showAdminLogin(); return false;">🔐 Admin Dashboard</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Diagnostic Screen -->
+        <div id="diagnostic-screen" class="screen">
+            <div class="screen-content">
+                <h2>Quick question to get started</h2>
+                <div class="question-card">
+                    <h3 id="diagnostic-question">In a sentence or two, what does AI do?</h3>
+                    <p class="hint">Not sure? Just type "skip"</p>
+                    <textarea id="diagnostic-answer" rows="4" placeholder="Your answer..." autofocus></textarea>
+                    <button class="btn btn-primary" onclick="submitDiagnostic()">Continue</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lesson Screen -->
+        <div id="lesson-screen" class="screen">
+            <div class="screen-content">
+                <div class="lesson-header">
+                    <h2 id="lesson-module">Lesson</h2>
+                    <div class="difficulty-badge" id="lesson-difficulty">Intermediate</div>
+                </div>
+                
+                <div class="lesson-content-wrapper">
+                    <div class="lesson-main">
+                        <div id="lesson-content" class="markdown-content"></div>
+                        
+                        <!-- Freepik Image Display -->
+                        <div id="lesson-image-container" class="image-container" style="display: none;">
+                            <img id="lesson-image" src="" alt="Lesson visual aid" />
+                            <p class="image-caption" id="image-caption"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="check-questions-container" class="check-questions" style="display: none;">
+                    <h3>📝 Check Your Understanding</h3>
+                    <div id="questions-list"></div>
+                </div>
+
+                <div class="lesson-actions">
+                    <button class="btn btn-secondary" onclick="showProgress()">View Progress</button>
+                    <button class="btn btn-secondary" onclick="toggleLearningDashboard()">Show AI Learning Dashboard</button>
+                    <button class="btn btn-primary" id="next-lesson-btn" onclick="nextLesson()">Next Page</button>
+                </div>
+                <div class="admin-link">
+                    <a href="#" onclick="showAdminLogin(); return false;">🔐 Admin Dashboard</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Admin Login Modal -->
+        <div id="admin-login-modal" class="modal-overlay" style="display: none;">
+            <div class="modal-content">
+                <h2>Admin Access</h2>
+                <p>Enter admin key to access the dashboard</p>
+                <input type="password" id="admin-key-input" placeholder="Admin key" class="admin-input">
+                <div class="modal-actions">
+                    <button class="btn btn-primary" onclick="authenticateAdmin()">Access Dashboard</button>
+                    <button class="btn btn-secondary" onclick="closeAdminLogin()">Cancel</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Admin Dashboard -->
+        <div id="admin-dashboard" class="learning-dashboard" style="display: none;">
+            <div class="dashboard-header">
+                <div>
+                    <h2>🔐 Admin Dashboard</h2>
+                    <p class="dashboard-subtitle">System-wide analytics and user management</p>
+                </div>
+                <button class="btn-close" onclick="toggleAdminDashboard()">×</button>
+            </div>
+            
+            <div class="dashboard-content">
+                <!-- System Statistics -->
+                <div class="dashboard-grid">
+                    <div class="dashboard-card stat-card">
+                        <h3>👥 Total Users</h3>
+                        <div class="stat-value" id="admin-total-users">-</div>
+                    </div>
+                    <div class="dashboard-card stat-card">
+                        <h3>❓ Total Questions</h3>
+                        <div class="stat-value" id="admin-total-questions">-</div>
+                    </div>
+                    <div class="dashboard-card stat-card">
+                        <h3>📚 Lessons Viewed</h3>
+                        <div class="stat-value" id="admin-total-lessons">-</div>
+                    </div>
+                    <div class="dashboard-card stat-card">
+                        <h3>📊 System Accuracy</h3>
+                        <div class="stat-value" id="admin-system-accuracy">-</div>
+                    </div>
+                    <div class="dashboard-card stat-card">
+                        <h3>⏱️ Avg Response Time</h3>
+                        <div class="stat-value" id="admin-avg-hesitation">-</div>
+                    </div>
+                </div>
+
+                <!-- Distribution Charts -->
+                <div class="dashboard-grid">
+                    <div class="dashboard-card">
+                        <h3>📈 Difficulty Distribution</h3>
+                        <div id="difficulty-chart" class="distribution-chart"></div>
+                    </div>
+                    <div class="dashboard-card">
+                        <h3>🎨 Learning Style Distribution</h3>
+                        <div id="style-chart" class="distribution-chart"></div>
+                    </div>
+                    <div class="dashboard-card">
+                        <h3>📦 Module Completion</h3>
+                        <div id="module-chart" class="distribution-chart"></div>
+                    </div>
+                </div>
+
+                <!-- Users Table -->
+                <div class="dashboard-card table-card">
+                    <h3>👤 Users Overview</h3>
+                    <div class="table-container">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>User ID</th>
+                                    <th>Current Module</th>
+                                    <th>Difficulty</th>
+                                    <th>Completed</th>
+                                    <th>Questions</th>
+                                    <th>Accuracy</th>
+                                    <th>Style</th>
+                                    <th>Last Active</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-users-table">
+                                <tr><td colspan="8">Loading...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Technology Stack Usage -->
+                <div class="dashboard-grid">
+                    <!-- LiquidMetal AI -->
+                    <div class="dashboard-card">
+                        <h3>⚡ LiquidMetal AI</h3>
+                        <div id="liquidmetal-stats-container">
+                            <p class="no-activity">Loading...</p>
+                        </div>
+                    </div>
+
+                    <!-- Daft Storage -->
+                    <div class="dashboard-card">
+                        <h3>💾 Daft Storage</h3>
+                        <div id="daft-stats-container">
+                            <p class="no-activity">Loading...</p>
+                        </div>
+                    </div>
+
+                    <!-- Fastino Labs -->
+                    <div class="dashboard-card">
+                        <h3>🚀 Fastino Labs</h3>
+                        <div id="fastino-stats-container">
+                            <p class="no-activity">Loading...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Activity -->
+                <div class="dashboard-card">
+                    <h3>🕐 Recent Activity</h3>
+                    <div id="admin-recent-activity" class="activity-list">
+                        <p class="no-activity">Loading...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Learning Dashboard (Demo Feature) -->
+        <div id="learning-dashboard" class="learning-dashboard" style="display: none;">
+            <div class="dashboard-header">
+                <div>
+                    <h2>🧠 AI Learning Dashboard</h2>
+                    <p class="dashboard-subtitle">See how the AI adapts to your learning in real-time</p>
+                </div>
+                <button class="btn-close" onclick="toggleLearningDashboard()">×</button>
+            </div>
+            
+            <div class="dashboard-content">
+                <div class="dashboard-grid">
+                    <!-- Current State -->
+                    <div class="dashboard-card">
+                        <h3>Current Learning State</h3>
+                        <div class="metric-row">
+                            <span class="metric-label">Difficulty Level:</span>
+                            <span class="metric-value" id="dashboard-difficulty">-</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-label">Learning Style:</span>
+                            <span class="metric-value" id="dashboard-style">-</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-label">Total Questions:</span>
+                            <span class="metric-value" id="dashboard-total">-</span>
+                        </div>
+                    </div>
+
+                    <!-- Performance Metrics -->
+                    <div class="dashboard-card">
+                        <h3>Performance Metrics</h3>
+                        <div class="metric-row">
+                            <span class="metric-label">Recent Accuracy:</span>
+                            <span class="metric-value" id="dashboard-accuracy">-</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-label">Avg Response Time:</span>
+                            <span class="metric-value" id="dashboard-hesitation">-</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-label">Difficulty Trend:</span>
+                            <span class="metric-value" id="dashboard-trend">-</span>
+                        </div>
+                    </div>
+
+                    <!-- AI Insights -->
+                    <div class="dashboard-card insights-card">
+                        <h3>🤖 AI Insights</h3>
+                        <div id="dashboard-insights" class="insights-list">
+                            <p class="no-insights">No insights yet. Start learning to see how the AI adapts!</p>
+                        </div>
+                    </div>
+
+                    <!-- Adaptation Log -->
+                    <div class="dashboard-card">
+                        <h3>📊 Adaptation History</h3>
+                        <div id="dashboard-adaptations" class="adaptations-list">
+                            <p class="no-adaptations">No adaptations yet. The AI will adjust as you learn!</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Performance Chart Placeholder -->
+                <div class="dashboard-card chart-card">
+                    <h3>Performance Over Time</h3>
+                    <div id="performance-chart" class="chart-container">
+                        <div class="chart-placeholder">
+                            <p>Chart will appear as you answer questions</p>
+                            <div class="simple-chart" id="simple-chart"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Capstone Screen -->
+        <div id="capstone-screen" class="screen">
+            <div class="screen-content">
+                <h2>🎓 Capstone Project: Build Your First AI Agent!</h2>
+                <p>You've learned the fundamentals. Now let's create something practical!</p>
+                <div class="question-card">
+                    <h3>What type of tasks would you like your agent to manage?</h3>
+                    <textarea id="capstone-description" rows="4" placeholder="Describe what you want your agent to do..."></textarea>
+                    <button class="btn btn-primary" onclick="generateCapstone()">Generate Agent</button>
+                </div>
+                <div id="capstone-result" style="display: none;">
+                    <h3>Your AI Agent</h3>
+                    <div id="capstone-description-text" class="description-text"></div>
+                    <div class="code-container">
+                        <pre><code id="capstone-code" class="language-python"></code></pre>
+                        <button class="btn btn-secondary" onclick="downloadCode()">Download Code</button>
+                    </div>
+                    <div id="capstone-next-steps"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Progress Screen -->
+        <div id="progress-screen" class="screen">
+            <div class="screen-content">
+                <h2>📈 Your Learning Progress</h2>
+                <div id="progress-stats" class="progress-stats"></div>
+                <div class="progress-actions">
+                    <button class="btn btn-secondary" onclick="goBack()">Back</button>
+                    <button class="btn btn-danger" onclick="resetProgress()">Reset Progress</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading Overlay -->
+        <div id="loading-overlay" class="loading-overlay" style="display: none;">
+            <div class="spinner"></div>
+            <p id="loading-text">Loading...</p>
+        </div>
+    </div>
+
+    <!-- Toast Notifications Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
+
